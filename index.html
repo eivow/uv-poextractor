@@ -236,6 +236,9 @@ table.show-extra .extra { display: table-cell; }
     if (!t || !/^\d[\d,.]*$/.test(t)) return null;
     // "1,642,00" -> decimal comma at the end
     if (!t.includes('.') && /,\d{2}$/.test(t)) t = t.replace(/,(\d{2})$/, '.$1');
+    if (/^\d{1,3}(\.\d{3})+,\d{1,2}$/.test(t)) t = t.replace(/\./g, '').replace(',', '.');          // 2.600,00
+    else if (/^\d{1,3}(\.\d{3})+\.\d{1,2}$/.test(t)) t = t.replace(/\.(?=\d{3}\.)/g, ',');      // 2.600.00
+    else if (/^\d{1,3}(\.\d{3}){2,}$/.test(t)) t = t.replace(/\./g, ',');                         // 1.250.000
     if ((t.match(/\./g) || []).length > 1) return null;
     const parts = t.split('.');
     const intPart = parts[0].replace(/,/g, '');
@@ -248,10 +251,12 @@ table.show-extra .extra { display: table-cell; }
   function normalizeLine(raw) {
     let s = ' ' + raw + ' ';
     s = s.replace(/[|_—–~«»=©®“”"]+/g, ' ');
+    s = s.replace(/\(\s+/g, '(').replace(/\s+\)/g, ')');
     // re-join a thousands group split by OCR: "3,971, 100.00" -> "3,971,100.00"
     s = s.replace(/(^|[^\d.,])(\d{1,3}(?:,\d{3})*),\s+(\d{3}(?:\.\d{1,2})?)(?![\d,])/g, '$1$2,$3');
     // split a unit glued to the following number: "PCS'1,642.00" -> "PCS 1,642.00"
     s = s.replace(/\b(PCS|PC|NOS|EA|SET|LOT|LS|L\.?M|KG|TON|MTR)\.?['’`,:]*(?=\d)/gi, '$1. ');
+    s = s.replace(/(^|\s)(\d[\d,]*(?:\.\d+)?)([A-Za-z]{1,6}\.?)(?=\s|$)/g, (m, pre, n, u) => (unitKey(u) ? pre + n + ' ' + u : m));
     return s.replace(/\s+/g, ' ').trim();
   }
 
@@ -416,14 +421,14 @@ table.show-extra .extra { display: table-cell; }
     for (const line of lines) {
       const m = line.match(re);
       if (m) {
-        const v = cleanValue(m[1]);
+        const v = cleanValue(m[1]).split(/\s{2,}|\s+(?:P\.?\s?O\.?\s*(?:#|No\b|Number)|Date\b)/i)[0];
         if (/[A-Za-z]{3,}/.test(v)) return v;
       }
     }
     for (let k = 0; k < lines.length; k++) {
       const m = lines[k].match(/\bM\/s\.?\s+(.{3,})/i);
       if (m) {
-        let v = cleanValue(m[1]).split(/\s{2,}| (?:See|Shipping|Payment|Date) /)[0];
+        let v = cleanValue(m[1]).split(/\s{2,}|\s+(?:See|Shipping|Payment|Date|Ref|Our Ref|P\.?\s?O\.?\s*(?:#|No\b|Number))/i)[0];
         const next = (lines[k + 1] || '').match(/^\s*(\([^)]{4,}\))/);
         if (next) v += ' ' + next[1];
         return v;
