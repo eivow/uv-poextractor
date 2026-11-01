@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Urban Vista Company P.O. Extractor</title>
+<meta name="author" content="FTLigot">
+<link rel="icon" type="image/png" href="brand/emblem.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Urban Vista brand: slate towers, park green, sand wordmark. Header band carries the emblem; intake left, line items right. */
+  --paper: #f6f5f0;
+  --surface: #ffffff;
+  --ink: #2c3338;
+  --slate: #5f686d;
+  --muted: #6d756f;
+  --line: #e2ddd0;
+  --sand: #b8a77f;
+  --sand-soft: #f1ecdf;
+  --accent: #4b6638;
+  --accent-soft: #e8efe2;
+  --badge: transparent;
+  --ok: #3f7a35;   --ok-soft: #e4f0df;
+  --fix: #8a6a12;  --fix-soft: #f7efd8;
+  --bad: #b03a2e;  --bad-soft: #fbe7e4;
+  --font-display: "Montserrat", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", Roboto, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #14181a; --surface: #1b2023; --ink: #e8e6df; --slate: #b4bcc0; --muted: #a2a99f; --line: #30363a;
+    --sand: #cdbd93; --sand-soft: #2a2720; --accent: #8db96f; --accent-soft: #223020; --badge: #eeece4;
+    --ok: #7fc06c; --ok-soft: #1c2e19; --fix: #e0bb5c; --fix-soft: #322a13; --bad: #f08a7d; --bad-soft: #3a1c18;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #14181a; --surface: #1b2023; --ink: #e8e6df; --slate: #b4bcc0; --muted: #a2a99f; --line: #30363a;
+  --sand: #cdbd93; --sand-soft: #2a2720; --accent: #8db96f; --accent-soft: #223020; --badge: #eeece4;
+  --ok: #7fc06c; --ok-soft: #1c2e19; --fix: #e0bb5c; --fix-soft: #322a13; --bad: #f08a7d; --bad-soft: #3a1c18;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.5 var(--font-body); }
+.wrap { max-width: 1320px; margin: 0 auto; padding: 24px 20px 28px; display: grid; gap: 20px; }
+header.brand { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px 20px; align-items: center; padding-bottom: 18px; border-bottom: 1px solid var(--sand); }
+.emblem { width: 84px; height: 84px; border-radius: 50%; background: var(--badge); display: grid; place-items: center; }
+.emblem img { width: 80px; height: auto; display: block; }
+.titles { display: grid; gap: 4px; min-width: 0; }
+h1 { margin: 0; display: grid; gap: 2px; text-wrap: balance; }
+h1 .co { font: 800 15px/1.2 var(--font-display); letter-spacing: .18em; text-transform: uppercase; color: var(--sand); }
+h1 .app { font: 700 28px/1.15 var(--font-display); letter-spacing: -0.005em; color: var(--slate); }
+.tagline { margin: 0; font: 600 11.5px/1.3 var(--font-display); letter-spacing: .12em; text-transform: uppercase; color: var(--sand); }
+.byline { align-self: start; font: 600 13px/1 var(--font-display); letter-spacing: .04em; color: var(--accent); background: var(--accent-soft); padding: 7px 12px; border-radius: 999px; white-space: nowrap; }
+.lede { color: var(--muted); margin: 0; max-width: 72ch; }
+footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+footer strong { color: var(--accent); font-weight: 600; }
+@media (max-width: 640px) {
+  header.brand { grid-template-columns: auto minmax(0, 1fr); }
+  .byline { grid-column: 1 / -1; justify-self: start; }
+  .emblem { width: 64px; height: 64px; } .emblem img { width: 60px; }
+  h1 .app { font-size: 22px; }
+}
+.grid { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.side { display: grid; gap: 16px; }
+.drop { display: grid; gap: 10px; justify-items: center; text-align: center; padding: 26px 18px; border: 1.5px dashed var(--line); border-radius: 10px; background: var(--surface); cursor: pointer; transition: border-color .15s, background .15s; }
+.drop:hover, .drop:focus-within, .drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop svg { color: var(--sand); }
+.drop strong { font-weight: 600; }
+.drop small { color: var(--muted); }
+.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.btn { font: 500 14px/1 var(--font-body); padding: 9px 14px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.btn.primary:hover { filter: brightness(1.08); color: var(--surface); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.opt { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; color: var(--muted); padding: 0 4px; }
+.opt input { margin-top: 3px; accent-color: var(--accent); }
+.files { padding: 6px 0; }
+.files h2, .results-head h2 { font: 700 12px/1 var(--font-display); text-transform: uppercase; letter-spacing: .12em; color: var(--sand); margin: 0; }
+.files h2 { padding: 10px 16px 8px; }
+.file { padding: 10px 16px; border-top: 1px solid var(--line); display: grid; gap: 4px; }
+.file .name { font-weight: 500; overflow-wrap: anywhere; font-size: 14px; }
+.file .meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+.file .po { font-family: var(--font-mono); color: var(--ink); }
+.bar { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.empty-files { padding: 4px 16px 12px; color: var(--muted); font-size: 13.5px; margin: 0; }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pill.ok { color: var(--ok); background: var(--ok-soft); }
+.pill.fixed { color: var(--fix); background: var(--fix-soft); }
+.pill.check, .pill.err { color: var(--bad); background: var(--bad-soft); }
+.pill.busy, .pill.unchecked { color: var(--slate); background: var(--sand-soft); }
+.note { font-size: 13px; color: var(--muted); padding: 0 4px; margin: 0; }
+.results { display: grid; gap: 0; min-width: 0; }
+.results-head { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.results-head .left { display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
+.count { font-size: 13.5px; color: var(--muted); }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.search { font: 14px var(--font-body); padding: 8px 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); width: 190px; }
+.toggle { display: inline-flex; gap: 6px; align-items: center; font-size: 13.5px; color: var(--muted); }
+.toggle input { accent-color: var(--accent); }
+.banner { margin: 12px 16px 0; padding: 9px 12px; border-radius: 7px; background: var(--sand-soft); border-left: 3px solid var(--sand); color: var(--ink); font-size: 13.5px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 700; font-size: 11.5px; font-family: var(--font-display); color: var(--slate); text-transform: uppercase; letter-spacing: .05em; background: var(--surface); position: sticky; top: 0; white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.mono { font-family: var(--font-mono); font-size: 12.5px; white-space: nowrap; }
+td.file-cell { max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); font-size: 12.5px; }
+td.vendor { min-width: 150px; max-width: 200px; }
+td.desc { min-width: 240px; }
+td[contenteditable] { cursor: text; }
+td[contenteditable]:hover { background: var(--accent-soft); }
+td[contenteditable]:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--surface); }
+tbody tr.flag td:first-child { box-shadow: inset 3px 0 0 var(--bad); }
+tbody tr.fixedrow td:first-child { box-shadow: inset 3px 0 0 var(--fix); }
+.extra { display: none; }
+table.show-extra .extra { display: table-cell; }
+.empty { padding: 40px 16px; text-align: center; color: var(--muted); }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 9px 14px; border-radius: 8px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.toast.show { opacity: 1; }
+.legend { display: flex; gap: 10px; flex-wrap: wrap; padding: 10px 16px 14px; font-size: 12.5px; color: var(--muted); align-items: center; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="brand">
+    <div class="emblem"><img src="brand/emblem.png" alt="Urban Vista Company logo" width="80" height="78"></div>
+    <div class="titles">
+      <h1><span class="co">Urban Vista Company</span> <span class="app">P.O. Extractor</span></h1>
+      <p class="tagline">Infrastructure | Construction | Landscaping</p>
+    </div>
+    <div class="byline">By: FTLigot</div>
+  </header>
+  <p class="lede">Drop in purchase order PDFs, scanned or digital. Each one is read in your browser and its line items are listed with PO number, vendor, description, unit and unit rate. Files never leave your device.</p>
+
+  <div class="grid">
+    <aside class="side">
+      <label class="drop" id="drop" for="fileInput">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 17v-6"/><path d="m9.5 13.5 2.5-2.5 2.5 2.5"/></svg>
+        <strong>Drop PO PDFs here</strong>
+        <small>or click to choose files. You can add several at once.</small>
+        <input id="fileInput" type="file" accept="application/pdf,.pdf" multiple>
+      </label>
+      <label class="opt" for="quick"><input id="quick" type="checkbox" checked> Stop reading a PO once its price table and total are found. Faster for long POs with many pages of terms.</label>
+      <section class="panel files" aria-labelledby="filesTitle">
+        <h2 id="filesTitle">Files</h2>
+        <div id="fileList"><p class="empty-files">No files yet.</p></div>
+      </section>
+      <p class="note">Scanned pages are read with OCR, which takes about 5 to 15 seconds per page. Rows marked <span class="pill fixed">Corrected</span> had a misread quantity or rate fixed using qty × rate = total. Rows marked <span class="pill check">Verify</span> could not be reconciled. Click any cell to edit it before exporting.</p>
+    </aside>
+
+    <section class="panel results" aria-labelledby="resTitle">
+      <div class="results-head">
+        <div class="left"><h2 id="resTitle">Line items</h2><span class="count" id="count"></span></div>
+        <div class="tools">
+          <input class="search" id="search" type="search" placeholder="Filter rows" aria-label="Filter rows">
+          <label class="toggle" for="flagOnly"><input id="flagOnly" type="checkbox"> Needs review</label>
+          <label class="toggle" for="showExtra"><input id="showExtra" type="checkbox"> Qty &amp; total</label>
+          <button class="btn" id="copyBtn" type="button">Copy for Excel</button>
+          <button class="btn primary" id="csvBtn" type="button">Download CSV</button>
+          <button class="btn" id="clearBtn" type="button">Clear</button>
+        </div>
+      </div>
+      <div class="banner" id="exampleBanner" hidden>Example: these rows were extracted from PO DAMSN/MPO-01/18. Upload your own PDFs and they replace this example.</div>
+      <div class="table-wrap">
+        <table id="table">
+          <thead><tr>
+            <th>File name</th><th>PO number</th><th>Vendor</th><th class="num">Item</th><th>Description</th><th>Unit</th><th class="num">Unit rate</th><th class="num extra">Qty</th><th class="num extra">Total</th><th>Check</th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="empty" hidden>No line items yet. Add a PO PDF to get started.</div>
+      <div class="legend"><span class="pill ok">Checked</span> qty × rate = total <span class="pill fixed">Corrected</span> fixed from the PO's own math <span class="pill check">Verify</span> compare with the PDF</div>
+    </section>
+  </div>
+</div>
+<div class="wrap" style="padding-top:0"><footer><span>Urban Vista Company P.O. Extractor</span><span>Designed and built <strong>By: FTLigot</strong> &middot; &copy; 2026 FTLigot. All rights reserved.</span></footer></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="po-parser.js"></script>
+<script type="module">
+import * as pdfjsLib from './lib/pdf.min.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('./lib/pdf.worker.min.mjs', location.href).href;
+
+const TESSERACT_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+const TESSERACT_WORKER_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js';
+const EXAMPLE = null;
+
+const $ = (id) => document.getElementById(id);
+const state = { files: [], rows: [], example: false, queue: Promise.resolve() };
+
+/* ---------- formatting ---------- */
+const fmt = (v, min = 2) => v == null || isNaN(v) ? '' : Number(v).toLocaleString('en-US', { minimumFractionDigits: min, maximumFractionDigits: 3 });
+const fmtQty = (v) => v == null || isNaN(v) ? '' : Number(v).toLocaleString('en-US', { maximumFractionDigits: 3 });
+const STATUS = { ok: 'Checked', fixed: 'Corrected', check: 'Verify', unchecked: 'No total' };
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show'), 2600); }
+
+/* ---------- file list ---------- */
+function renderFiles() {
+  const box = $('fileList');
+  box.textContent = '';
+  if (!state.files.length) { box.innerHTML = '<p class="empty-files">No files yet.</p>'; return; }
+  for (const f of state.files) {
+    const el = document.createElement('div'); el.className = 'file';
+    const name = document.createElement('div'); name.className = 'name'; name.textContent = f.name;
+    const meta = document.createElement('div'); meta.className = 'meta';
+    const pill = document.createElement('span');
+    if (f.status === 'done') {
+      const flagged = f.items.filter((i) => i.status === 'check').length;
+      pill.className = 'pill ' + (f.items.length ? (flagged ? 'check' : 'ok') : 'err');
+      pill.textContent = f.items.length ? `${f.items.length} items${flagged ? `, ${flagged} to verify` : ''}` : 'No line items found';
+    } else if (f.status === 'error') { pill.className = 'pill err'; pill.textContent = 'Could not read'; }
+    else { pill.className = 'pill busy'; pill.textContent = f.msg || 'Waiting'; }
+    meta.append(pill);
+    if (f.po) { const po = document.createElement('span'); po.className = 'po'; po.textContent = f.po; meta.append(po); }
+    el.append(name, meta);
+    if (f.status === 'busy' || f.status === 'queued') {
+      const bar = document.createElement('div'); bar.className = 'bar';
+      const i = document.createElement('i'); i.style.width = Math.round((f.progress || 0) * 100) + '%'; bar.append(i); el.append(bar);
+    }
+    if (f.status === 'error' && f.error) { const e = document.createElement('div'); e.className = 'meta'; e.textContent = f.error; el.append(e); }
+    box.append(el);
+  }
+}
+
+/* ---------- results table ---------- */
+function allRows() {
+  const rows = [];
+  for (const f of state.files) for (const it of f.items) rows.push({ f, it });
+  return rows;
+}
+function renderTable() {
+  const tbody = $('tbody'); tbody.textContent = '';
+  const q = $('search').value.trim().toLowerCase();
+  const flagOnly = $('flagOnly').checked;
+  const rows = allRows();
+  let shown = 0;
+  for (const { f, it } of rows) {
+    if (flagOnly && it.status === 'ok') continue;
+    if (q && ![f.name, f.po, f.vendor, it.description, it.unit, String(it.rate)].join(' ').toLowerCase().includes(q)) continue;
+    shown++;
+    const tr = document.createElement('tr');
+    if (it.status === 'check') tr.className = 'flag'; else if (it.status === 'fixed') tr.className = 'fixedrow';
+    const cell = (text, cls, edit) => {
+      const td = document.createElement('td'); td.textContent = text; if (cls) td.className = cls;
+      if (edit) { td.contentEditable = 'true'; td.spellcheck = false; td.addEventListener('blur', () => edit(td.textContent.trim(), td)); td.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); td.blur(); } }); }
+      return td;
+    };
+    tr.append(
+      (() => { const td = cell(f.name, 'file-cell'); td.title = f.name; return td; })(),
+      cell(f.po || '', 'mono', (v) => { f.po = v; renderFiles(); }),
+      cell(f.vendor || '', 'vendor', (v) => { f.vendor = v; }),
+      cell(it.item ?? '', 'num'),
+      cell(it.description, 'desc', (v) => { it.description = v; }),
+      cell(it.unit, '', (v) => { it.unit = v; }),
+      cell(fmt(it.rate), 'num', (v, td) => { const n = parseFloat(v.replace(/,/g, '')); if (!isNaN(n)) it.rate = n; td.textContent = fmt(it.rate); }),
+      cell(fmtQty(it.qty), 'num extra', (v, td) => { const n = parseFloat(v.replace(/,/g, '')); if (!isNaN(n)) it.qty = n; td.textContent = fmtQty(it.qty); }),
+      cell(fmt(it.total), 'num extra')
+    );
+    const td = document.createElement('td'); const p = document.createElement('span');
+    p.className = 'pill ' + it.status; p.textContent = STATUS[it.status] || it.status; if (it.note) p.title = it.note;
+    td.append(p); tr.append(td);
+    tbody.append(tr);
+  }
+  const total = rows.length;
+  $('count').textContent = total ? (shown === total ? `${total} rows from ${state.files.filter((f) => f.items.length).length} file(s)` : `${shown} of ${total} rows`) : '';
+  $('empty').hidden = total > 0;
+  $('exampleBanner').hidden = !state.example;
+  $('copyBtn').disabled = $('csvBtn').disabled = total === 0;
+}
+$('search').addEventListener('input', renderTable);
+$('flagOnly').addEventListener('change', renderTable);
+$('showExtra').addEventListener('change', () => $('table').classList.toggle('show-extra', $('showExtra').checked));
+
+/* ---------- export ---------- */
+const COLS = ['File name', 'PO number', 'Vendor', 'Item', 'Description', 'Unit', 'Unit rate', 'Qty', 'Total', 'Check', 'Note'];
+function exportRows() {
+  return allRows().map(({ f, it }) => [f.name, f.po, f.vendor, it.item ?? '', it.description, it.unit, it.rate ?? '', it.qty ?? '', it.total ?? '', STATUS[it.status] || '', it.note || '']);
+}
+function toCSV() {
+  const esc = (v) => { const s = String(v ?? ''); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  return '﻿' + [COLS, ...exportRows()].map((r) => r.map(esc).join(',')).join('\r\n');
+}
+function csvName() {
+  const pos = [...new Set(state.files.map((f) => f.po).filter(Boolean))];
+  return (pos.length === 1 ? 'PO_' + pos[0].replace(/[^\w-]+/g, '-') : 'PO_line_items') + '.csv';
+}
+let downloadsApi;
+async function getDownloads() {
+  if (downloadsApi !== undefined) return downloadsApi;
+  for (let i = 0; i < 20 && !(window.claude && window.claude.use); i++) await new Promise((r) => setTimeout(r, 100));
+  try { downloadsApi = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch { downloadsApi = null; }
+  return downloadsApi;
+}
+$('csvBtn').addEventListener('click', async () => {
+  const data = toCSV(), filename = csvName();
+  const dl = await getDownloads();
+  if (dl) {
+    try { await dl.save({ filename, data }); toast('CSV saved'); }
+    catch (e) { if (e && e.code !== 'declined') toast('Download is not available here. Use Copy for Excel instead.'); }
+    return;
+  }
+  try {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([data], { type: 'text/csv;charset=utf-8' }));
+    a.download = filename; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  } catch { toast('Download is not available here. Use Copy for Excel instead.'); }
+});
+$('copyBtn').addEventListener('click', async () => {
+  const tsv = [COLS, ...exportRows()].map((r) => r.map((v) => String(v ?? '').replace(/[\t\n\r]+/g, ' ')).join('\t')).join('\n');
+  try { await navigator.clipboard.writeText(tsv); toast('Copied. Paste into Excel or Google Sheets.'); }
+  catch { toast('Copy was blocked by the browser.'); }
+});
+$('clearBtn').addEventListener('click', () => {
+  if (state.files.some((f) => f.status === 'busy' || f.status === 'queued')) { toast('Wait for the current files to finish.'); return; }
+  state.files = []; state.example = false; renderFiles(); renderTable();
+});
+
+/* ---------- reading PDFs ---------- */
+function linesFromTextContent(tc) {
+  const rows = [];
+  for (const it of tc.items) {
+    if (!it.str || !it.str.trim()) continue;
+    const x = it.transform[4], y = it.transform[5], h = Math.abs(it.transform[3]) || 8;
+    let row = rows.find((r) => Math.abs(r.y - y) < h * 0.5);
+    if (!row) { row = { y, h, parts: [] }; rows.push(row); }
+    row.parts.push({ x, w: it.width, s: it.str });
+  }
+  rows.sort((a, b) => b.y - a.y);
+  return rows.map((r) => {
+    r.parts.sort((a, b) => a.x - b.x);
+    let out = '', end = null;
+    for (const p of r.parts) { out += end == null ? p.s : (p.x - end > r.h * 0.25 ? '  ' : '') + p.s; end = p.x + p.w; }
+    return out;
+  }).join('\n');
+}
+
+// Remove table rules (long horizontal/vertical runs) so OCR reads the cells as plain rows.
+function cleanForOCR(canvas) {
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const W = canvas.width, H = canvas.height;
+  const img = ctx.getImageData(0, 0, W, H), d = img.data;
+  const g = new Uint8Array(W * H), hist = new Uint32Array(256);
+  for (let i = 0, p = 0; i < g.length; i++, p += 4) { const v = (d[p] * 299 + d[p + 1] * 587 + d[p + 2] * 114) / 1000 | 0; g[i] = v; hist[v]++; }
+  // Otsu threshold
+  let sum = 0; for (let t = 0; t < 256; t++) sum += t * hist[t];
+  let sumB = 0, wB = 0, best = 0, otsu = 160;
+  for (let t = 0; t < 256; t++) { wB += hist[t]; if (!wB) continue; const wF = g.length - wB; if (!wF) break; sumB += t * hist[t]; const mB = sumB / wB, mF = (sum - sumB) / wF; const v = wB * wF * (mB - mF) * (mB - mF); if (v > best) { best = v; otsu = t; } }
+  const lineT = Math.max(60, otsu - 25), outT = Math.min(235, otsu + (255 - otsu) * 0.43);
+  const L = Math.round(W * 0.04), mask = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) { let x = 0; const o = y * W; while (x < W) { if (g[o + x] < lineT) { const s = x; while (x < W && g[o + x] < lineT) x++; if (x - s >= L) mask.fill(1, o + s, o + x); } else x++; } }
+  for (let x = 0; x < W; x++) { let y = 0; while (y < H) { if (g[y * W + x] < lineT) { const s = y; while (y < H && g[y * W + x] < lineT) y++; if (y - s >= L) for (let k = s; k < y; k++) mask[k * W + x] = 1; } else y++; } }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x;
+    const m = mask[i] || (x > 0 && mask[i - 1]) || (x < W - 1 && mask[i + 1]) || (y > 0 && mask[i - W]) || (y < H - 1 && mask[i + W]);
+    const v = !m && g[i] < outT ? 0 : 255, p = i * 4;
+    d[p] = d[p + 1] = d[p + 2] = v; d[p + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  return canvas;
+}
+
+let ocrWorker = null, ocrProgress = () => {};
+function loadScript(src) {
+  return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('Could not load the OCR engine. Check your internet connection and try again.')); document.head.append(s); });
+}
+async function getOCR() {
+  if (ocrWorker) return ocrWorker;
+  if (!window.Tesseract) await loadScript(TESSERACT_URL);
+  ocrWorker = (async () => {
+    // The English model ships with this page as base64 in a script. A small wrapper worker
+    // loads it and answers the engine's request for eng.traineddata.gz from memory.
+    const dataUrl = new URL('./tessdata/eng-traineddata.js', location.href).href;
+    const src = `importScripts(${JSON.stringify(dataUrl)});
+const __bin = atob(self.ENG_TRAINEDDATA_GZ_B64), __bytes = new Uint8Array(__bin.length);
+for (let i = 0; i < __bin.length; i++) __bytes[i] = __bin.charCodeAt(i);
+self.ENG_TRAINEDDATA_GZ_B64 = null;
+const __f = self.fetch.bind(self);
+self.fetch = (u, o) => /eng\\.traineddata/.test(String(u && u.url || u)) ? Promise.resolve(new Response(__bytes.slice(0))) : __f(u, o);
+importScripts(${JSON.stringify(TESSERACT_WORKER_URL)});`;
+    const w = await Tesseract.createWorker('eng', 1, {
+      workerPath: URL.createObjectURL(new Blob([src], { type: 'text/javascript' })),
+      workerBlobURL: false,
+      langPath: 'https://lang.local/tessdata',
+      gzip: true,
+      cacheMethod: 'none',
+      logger: (m) => { if (m.status === 'recognizing text') ocrProgress(m.progress || 0); }
+    });
+    await w.setParameters({ tessedit_pageseg_mode: '6', user_defined_dpi: '300' });
+    return w;
+  })();
+  ocrWorker.catch(() => { ocrWorker = null; });
+  return ocrWorker;
+}
+
+async function pageText(page, f, pageNo, numPages) {
+  const tc = await page.getTextContent();
+  const text = linesFromTextContent(tc);
+  if ((text.match(/[A-Za-z0-9]/g) || []).length > 80) return text;
+  // Scanned page: render at about 300 dpi and OCR it.
+  f.msg = `Reading page ${pageNo} of ${numPages} (OCR)`; renderFiles();
+  const base = page.getViewport({ scale: 1 });
+  const scale = Math.min(300 / 72, 3400 / Math.max(base.width, base.height));
+  const vp = page.getViewport({ scale });
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height);
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  await page.render({ canvas, canvasContext: ctx, viewport: vp }).promise;
+  cleanForOCR(canvas);
+  const w = await getOCR();
+  ocrProgress = (p) => { f.progress = (pageNo - 1 + p) / numPages; renderFiles(); };
+  const { data } = await w.recognize(canvas);
+  ocrProgress = () => {};
+  canvas.width = canvas.height = 0;
+  return data.text || '';
+}
+
+async function processFile(f) {
+  f.status = 'busy'; f.msg = 'Opening'; renderFiles();
+  try {
+    const buf = await f.file.arrayBuffer();
+    const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buf) });
+    const pdf = await loadingTask.promise;
+    const parser = POParser.createDocParser();
+    const quick = $('quick').checked;
+    for (let n = 1; n <= pdf.numPages; n++) {
+      f.msg = `Reading page ${n} of ${pdf.numPages}`; f.progress = (n - 1) / pdf.numPages; renderFiles();
+      const page = await pdf.getPage(n);
+      parser.addPage(await pageText(page, f, n, pdf.numPages));
+      page.cleanup();
+      const r = parser.result();
+      Object.assign(f, { po: r.po, vendor: r.vendor, items: r.items });
+      renderTable();
+      if (quick && r.items.length && r.sawTotal && r.po && r.vendor) break;
+    }
+    try { await loadingTask.destroy(); } catch {}
+    f.status = 'done'; f.progress = 1;
+  } catch (e) {
+    console.error(e);
+    f.status = 'error';
+    f.error = /password/i.test(e && e.message) ? 'This PDF is password protected.' : (e && e.message) || 'Unknown error';
+  }
+  renderFiles(); renderTable();
+}
+
+function addFiles(list) {
+  const pdfs = [...list].filter((x) => /\.pdf$/i.test(x.name) || x.type === 'application/pdf');
+  if (!pdfs.length) { toast('Please choose PDF files.'); return; }
+  if (state.example) { state.files = []; state.example = false; }
+  for (const file of pdfs) {
+    const f = { file, name: file.name, status: 'queued', msg: 'Waiting', progress: 0, po: '', vendor: '', items: [] };
+    state.files.push(f);
+    state.queue = state.queue.then(() => processFile(f));
+  }
+  renderFiles(); renderTable();
+}
+$('fileInput').addEventListener('change', (e) => { addFiles(e.target.files); e.target.value = ''; });
+const drop = $('drop');
+['dragenter', 'dragover'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', (e) => addFiles(e.dataTransfer.files));
+window.addEventListener('dragover', (e) => e.preventDefault());
+window.addEventListener('drop', (e) => { e.preventDefault(); if (e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
+
+/* ---------- start with the example ---------- */
+if (EXAMPLE) {
+  state.files = [{ name: EXAMPLE.file, status: 'done', po: EXAMPLE.po, vendor: EXAMPLE.vendor, items: EXAMPLE.items, progress: 1 }];
+  state.example = true;
+}
+renderFiles(); renderTable();
+window.__po = { state, addFiles };
+</script>
+</body>
+</html>
